@@ -374,22 +374,46 @@ impl<T> Grid<T> {
         }
     }
 
-    pub fn flood_fill<F>(&mut self, start_pos: Pos, fill_value: T, is_blocked: F)
+    fn _flood_fill<F>(&mut self, start_pos: Pos, fill_value: T, is_blocked: F, cardinal: bool) -> usize
     where
         F: Fn(&T) -> bool,
         T: Clone + Eq,
     {
-        let mut stack = vec![start_pos];
         assert!(!is_blocked(&self[start_pos]));
+
+        let mut stack = vec![start_pos];
+        let neighbors = if cardinal { Self::cardinal_neighbors } else { Self::all_neighbors };
+        let mut changed = 0;
+
         while let Some(pos) = stack.pop() {
-            self[pos] = fill_value.clone();
-            let new_positions = self.all_neighbors(pos).filter(|&np| {
+            if self[pos] != fill_value {
+                self[pos] = fill_value.clone();
+                changed += 1;
+            }
+            let new_positions = neighbors(self, pos).filter(|&np| {
                 let val = &self[np];
                 !is_blocked(&self[np]) && *val != fill_value
             });
             stack.extend(new_positions);
         }
+        changed
     }
+
+    pub fn flood_fill<F>(&mut self, start_pos: Pos, fill_value: T, is_blocked: F) -> usize
+    where
+        F: Fn(&T) -> bool,
+        T: Clone + Eq,
+    {
+        self._flood_fill(start_pos, fill_value, is_blocked, false)
+    }
+
+    pub fn flood_fill_cardinal<F>(&mut self, start_pos: Pos, fill_value: T, is_blocked: F) -> usize
+    where
+        F: Fn(&T) -> bool,
+        T: Clone + Eq,
+    {
+        self._flood_fill(start_pos, fill_value, is_blocked, true)
+    }    
 
     pub fn map<U, F>(&self, f: F) -> Grid<U>
     where
