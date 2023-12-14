@@ -489,4 +489,114 @@ mod tests {
             vec![Pos(0, 0), Pos(1, 1), Pos(2, 2),]
         );
     }
+
+    #[test]
+    fn test_transpose() {
+        let g = Grid {
+            width: 3,
+            height: 4,
+            g: vec!['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
+        };
+        let g_t = g.transpose();
+        let transposed = Grid {
+            width: 4,
+            height: 3,
+            g: vec!['a', 'd', 'g', 'j', 'b', 'e', 'h', 'k', 'c', 'f', 'i', 'l'],
+        };
+        assert_eq!(g_t, transposed);
+        assert_eq!(g_t.transpose(), g);
+    }
+
+    #[test]
+    fn test_rotations() {
+        let g = sample_grid();
+        let g_r = g.rotate_right();
+        let rotated_right = Grid {
+            width: 3,
+            height: 3,
+            g: vec!['g', 'd', 'a', 'h', 'e', 'b', 'i', 'f', 'c'],
+        };
+        assert_eq!(g_r, rotated_right);
+        assert_eq!(g_r.rotate_left(), g);
+        let g_l = g.rotate_left();
+        let rotated_left = Grid {
+            width: 3,
+            height: 3,
+            g: vec!['c', 'f', 'i', 'b', 'e', 'h', 'a', 'd', 'g'],
+        };
+        assert_eq!(g_l, rotated_left);
+    }
+
+    #[test]
+    fn test_row_iter() {
+        let g = sample_grid();
+        assert_eq!(
+            g.row(0).collect::<Vec<_>>(),
+            vec![&'a', &'b', &'c']
+        );
+        assert_eq!(
+            g.row(1).collect::<Vec<_>>(),
+            vec![&'d', &'e', &'f']
+        );
+        assert_eq!(
+            g.row(2).collect::<Vec<_>>(),
+            vec![&'g', &'h', &'i']
+        );
+    }
+
+    #[test]
+    fn test_col_iter() {
+        let g = sample_grid();
+        assert_eq!(
+            g.col(0).collect::<Vec<_>>(),
+            vec![&'a', &'d', &'g']
+        );
+        assert_eq!(
+            g.col(1).collect::<Vec<_>>(),
+            vec![&'b', &'e', &'h']
+        );
+        assert_eq!(
+            g.col(2).collect::<Vec<_>>(),
+            vec![&'c', &'f', &'i']
+        );
+    }
+
+    #[test]
+    fn test_flood_fill() {
+        let orig = "........
+.######.
+.#...#..
+.#.####.
+.#..#...
+.####...
+........";
+        let flooded = "........
+.######.
+.#xxx#..
+.#x####.
+.#xx#...
+.####...
+........";
+        let mut g1 = orig.parse::<Grid<char>>().unwrap();
+        g1.flood_fill(Pos(2, 3), 'x', |c| *c == '#');
+        let g2 = flooded.parse::<Grid<char>>().unwrap();
+        assert_eq!(g1, g2);
+    }
+
+    #[test]
+    fn test_map() {
+        let g = sample_grid().map(|c| *c as u8 - b'a');
+        assert_eq!(
+            g.row(0).copied().collect::<Vec<_>>(),
+            vec![0, 1, 2]
+        );
+    }
+
+    #[test]
+    fn test_from_space_sep() {
+        let g: Grid<u8> = Grid::from_space_sep(" 1 2   3 \n4 5 6\n7 8 9").unwrap();
+        assert_eq!(g.width, 3);
+        assert_eq!(g.height, 3);
+        assert_eq!(g.g, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    }
 }
