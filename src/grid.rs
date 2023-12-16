@@ -227,6 +227,12 @@ impl<T> IndexMut<(usize, usize)> for Grid<T> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Pos(pub usize, pub usize);
 
+impl fmt::Display for Pos {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.0, self.1)
+    }
+}
+
 impl<T> Index<Pos> for Grid<T> {
     type Output = T;
 
