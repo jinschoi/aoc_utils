@@ -424,7 +424,20 @@ impl<T> Grid<T> {
         }
     }
 
-    fn _flood_fill<F>(&mut self, start_pos: Pos, fill_value: T, is_blocked: F, cardinal: bool) -> usize
+    pub fn subgrid_elements(&self, from_pos: Pos, to_pos: Pos) -> impl Iterator<Item = &T> {
+        assert!(from_pos.0 <= to_pos.0 && from_pos.1 <= to_pos.1);
+        let row_iters = (from_pos.0..=to_pos.0)
+            .map(move |i| self.row(i).skip(from_pos.1).take(to_pos.1 - from_pos.1 + 1));
+        row_iters.flatten()
+    }
+
+    fn _flood_fill<F>(
+        &mut self,
+        start_pos: Pos,
+        fill_value: T,
+        is_blocked: F,
+        cardinal: bool,
+    ) -> usize
     where
         F: Fn(&T) -> bool,
         T: Clone + Eq,
@@ -432,7 +445,11 @@ impl<T> Grid<T> {
         assert!(!is_blocked(&self[start_pos]));
 
         let mut stack = vec![start_pos];
-        let neighbors = if cardinal { Self::cardinal_neighbors } else { Self::all_neighbors };
+        let neighbors = if cardinal {
+            Self::cardinal_neighbors
+        } else {
+            Self::all_neighbors
+        };
         let mut changed = 0;
 
         while let Some(pos) = stack.pop() {
@@ -463,7 +480,7 @@ impl<T> Grid<T> {
         T: Clone + Eq,
     {
         self._flood_fill(start_pos, fill_value, is_blocked, true)
-    }    
+    }
 
     pub fn map<U, F>(&self, f: F) -> Grid<U>
     where
@@ -625,35 +642,17 @@ mod tests {
     #[test]
     fn test_row_iter() {
         let g = sample_grid();
-        assert_eq!(
-            g.row(0).collect::<Vec<_>>(),
-            vec![&'a', &'b', &'c']
-        );
-        assert_eq!(
-            g.row(1).collect::<Vec<_>>(),
-            vec![&'d', &'e', &'f']
-        );
-        assert_eq!(
-            g.row(2).collect::<Vec<_>>(),
-            vec![&'g', &'h', &'i']
-        );
+        assert_eq!(g.row(0).collect::<Vec<_>>(), vec![&'a', &'b', &'c']);
+        assert_eq!(g.row(1).collect::<Vec<_>>(), vec![&'d', &'e', &'f']);
+        assert_eq!(g.row(2).collect::<Vec<_>>(), vec![&'g', &'h', &'i']);
     }
 
     #[test]
     fn test_col_iter() {
         let g = sample_grid();
-        assert_eq!(
-            g.col(0).collect::<Vec<_>>(),
-            vec![&'a', &'d', &'g']
-        );
-        assert_eq!(
-            g.col(1).collect::<Vec<_>>(),
-            vec![&'b', &'e', &'h']
-        );
-        assert_eq!(
-            g.col(2).collect::<Vec<_>>(),
-            vec![&'c', &'f', &'i']
-        );
+        assert_eq!(g.col(0).collect::<Vec<_>>(), vec![&'a', &'d', &'g']);
+        assert_eq!(g.col(1).collect::<Vec<_>>(), vec![&'b', &'e', &'h']);
+        assert_eq!(g.col(2).collect::<Vec<_>>(), vec![&'c', &'f', &'i']);
     }
 
     #[test]
@@ -681,10 +680,7 @@ mod tests {
     #[test]
     fn test_map() {
         let g = sample_grid().map(|c| *c as u8 - b'a');
-        assert_eq!(
-            g.row(0).copied().collect::<Vec<_>>(),
-            vec![0, 1, 2]
-        );
+        assert_eq!(g.row(0).copied().collect::<Vec<_>>(), vec![0, 1, 2]);
     }
 
     #[test]
@@ -693,5 +689,14 @@ mod tests {
         assert_eq!(g.width, 3);
         assert_eq!(g.height, 3);
         assert_eq!(g.g, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    }
+
+    #[test]
+    fn test_subgrid() {
+        let g = sample_grid();
+        let subgrid = g.subgrid(Pos(0, 1), Pos(1, 2));
+        assert_eq!(subgrid.width, 2);
+        assert_eq!(subgrid.height, 2);
+        assert_eq!(subgrid.g, vec!['b', 'c', 'e', 'f']);
     }
 }
