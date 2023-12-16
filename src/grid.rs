@@ -110,6 +110,34 @@ where
             g,
         }
     }
+
+    pub fn flip_lr(&self) -> Self {
+        let mut g = vec![];
+        for i in 0..self.height {
+            for j in (0..self.width).rev() {
+                g.push(self[(i, j)].clone());
+            }
+        }
+        Self {
+            width: self.width,
+            height: self.height,
+            g,
+        }
+    }
+
+    pub fn flip_ud(&self) -> Self {
+        let mut g = vec![];
+        for i in (0..self.height).rev() {
+            for j in 0..self.width {
+                g.push(self[(i, j)].clone());
+            }
+        }
+        Self {
+            width: self.width,
+            height: self.height,
+            g,
+        }
+    }
 }
 
 impl<T> From<Vec<Vec<T>>> for Grid<T> {
@@ -555,6 +583,27 @@ mod tests {
             g: vec!['c', 'f', 'i', 'b', 'e', 'h', 'a', 'd', 'g'],
         };
         assert_eq!(g_l, rotated_left);
+    }
+
+    #[test]
+    fn test_flips() {
+        let g = sample_grid();
+        let g_lr = g.flip_lr();
+        let flipped_lr = Grid {
+            width: 3,
+            height: 3,
+            g: vec!['c', 'b', 'a', 'f', 'e', 'd', 'i', 'h', 'g'],
+        };
+        assert_eq!(g_lr, flipped_lr);
+        assert_eq!(g_lr.flip_lr(), g);
+        let g_ud = g.flip_ud();
+        let flipped_ud = Grid {
+            width: 3,
+            height: 3,
+            g: vec!['g', 'h', 'i', 'd', 'e', 'f', 'a', 'b', 'c'],
+        };
+        assert_eq!(g_ud, flipped_ud);
+        assert_eq!(g_ud.flip_ud(), g);
     }
 
     #[test]
