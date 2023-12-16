@@ -51,9 +51,9 @@ where
     }
 }
 
-impl<T> Grid<T>
+impl<'a, T> Grid<T>
 where
-    T: Clone,
+    T: Clone + 'a,
 {
     pub fn new(fill: T, width: usize, height: usize) -> Self {
         let g = vec![fill; width * height];
@@ -67,6 +67,22 @@ where
             height,
             g: vals,
         }
+    }
+
+    pub fn from_iter<I>(it: I, width: usize, height: usize) -> Self
+    where
+        I: Iterator<Item = &'a T>,
+    {
+        let vals: Vec<T> = it.cloned().collect();
+        Self::from_vals(vals, width, height)
+    }
+
+    pub fn subgrid(&self, from_pos: Pos, to_pos: Pos) -> Self {
+        Self::from_iter(
+            self.subgrid_elements(from_pos, to_pos),
+            to_pos.0 - from_pos.0 + 1,
+            to_pos.1 - from_pos.1 + 1,
+        )
     }
 
     pub fn transpose(&self) -> Self {
