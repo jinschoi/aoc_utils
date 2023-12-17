@@ -277,6 +277,20 @@ impl fmt::Display for Pos {
     }
 }
 
+impl Pos {
+    pub fn manhattan_distance(&self, other: &Self) -> usize {
+        (if self.0 < other.0 {
+            other.0 - self.0
+        } else {
+            self.0 - other.0
+        }) + if self.1 < other.1 {
+            other.1 - self.1
+        } else {
+            self.1 - other.1
+        }
+    }
+}
+
 impl<T> Index<Pos> for Grid<T> {
     type Output = T;
 
