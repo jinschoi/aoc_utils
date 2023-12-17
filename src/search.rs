@@ -20,19 +20,22 @@ impl<T: Eq> PartialOrd for DijkstraState<T> {
     }
 }
 
-pub fn dijkstra<T, G, N>(start: T, goal: G, neighbors: N) -> Option<u32>
+pub fn dijkstra<T, S, G, N>(start_nodes: S, goal: G, neighbors: N) -> Option<u32>
 where
     T: Hash + Eq + Clone,
+    S: IntoIterator<Item = T>,
     G: Fn(&T) -> bool,
     N: Fn(&T) -> Vec<(u32, T)>,
 {
     let mut dist = HashMap::new();
     let mut q = BinaryHeap::new();
-    dist.insert(start.clone(), 0);
-    q.push(DijkstraState {
-        cost: 0,
-        node: start,
-    });
+    for start in start_nodes {
+        dist.insert(start.clone(), 0);
+        q.push(DijkstraState {
+            cost: 0,
+            node: start,
+        });
+    }
 
     let mut max_q = 0;
     let mut steps = 0;
@@ -85,14 +88,15 @@ impl<T: Eq> PartialOrd for AstarState<T> {
     }
 }
 
-pub fn astar_full_path<T, G, N, H>(
-    start: T,
+pub fn astar_full_path<T, S, G, N, H>(
+    start_nodes: S,
     goal: G,
     neighbors: N,
     heuristic: H,
 ) -> Option<AstarResult<T>>
 where
     T: Hash + Eq + Clone,
+    S: IntoIterator<Item = T>,
     G: Fn(&T) -> bool,
     N: Fn(&T) -> Vec<(u32, T)>,
     H: Fn(&T) -> u32,
@@ -100,11 +104,14 @@ where
     let mut dist = HashMap::new();
     let mut came_from = HashMap::new();
     let mut q = BinaryHeap::new();
-    dist.insert(start.clone(), 0);
-    q.push(AstarState {
-        estimated_cost: heuristic(&start),
-        node: start,
-    });
+
+    for start in start_nodes {
+        dist.insert(start.clone(), 0);
+        q.push(AstarState {
+            estimated_cost: heuristic(&start),
+            node: start,
+        });
+    }
 
     let mut max_q = 0;
     let mut steps = 0;
@@ -145,21 +152,24 @@ where
     None
 }
 
-pub fn astar_dist<T, G, N, H>(start: T, goal: G, neighbors: N, heuristic: H) -> Option<u32>
+pub fn astar_dist<T, S, G, N, H>(start_nodes: S, goal: G, neighbors: N, heuristic: H) -> Option<u32>
 where
     T: Hash + Eq + Clone,
+    S: IntoIterator<Item = T>,
     G: Fn(&T) -> bool,
     N: Fn(&T) -> Vec<(u32, T)>,
     H: Fn(&T) -> u32,
 {
     let mut dist = HashMap::new();
     let mut q = BinaryHeap::new();
-    dist.insert(start.clone(), 0);
 
-    q.push(AstarState {
-        estimated_cost: heuristic(&start),
-        node: start,
-    });
+    for start in start_nodes {
+        dist.insert(start.clone(), 0);
+        q.push(AstarState {
+            estimated_cost: heuristic(&start),
+            node: start,
+        });
+    }
 
     let mut max_q = 0;
     let mut steps = 0;
