@@ -1,6 +1,7 @@
 pub mod grid;
 pub mod search;
 pub mod counter;
+pub mod vecmap;
 
 use std::fs::File;
 use std::io::{self, BufRead};
