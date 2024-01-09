@@ -1,6 +1,41 @@
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use std::hash::Hash;
+
+fn bfs_full_path<T, S, G, N, NR>(start_nodes: S, goal: G, neighbors: N) -> Option<Vec<T>>
+where
+    T: Hash + Eq + Clone,
+    S: IntoIterator<Item = T>,
+    G: Fn(&T) -> bool,
+    N: Fn(&T) -> NR,
+    NR: IntoIterator<Item = T>,
+{
+    let mut prev = HashMap::<T, T>::new();
+    let mut q = VecDeque::from_iter(start_nodes);
+    let mut seen = HashSet::<T>::from_iter(q.iter().cloned());
+
+    while let Some(s) = q.pop_front() {
+        if goal(&s) {
+            let mut path = Vec::new();
+            let mut cur = &s;
+            while let Some(prev) = prev.get(cur) {
+                path.push(cur.clone());
+                cur = prev;
+            }
+            path.push(cur.clone());
+            path.reverse();
+            return Some(path);
+        }
+        for n in neighbors(&s) {
+            if !seen.contains(&n) {
+                seen.insert(n.clone());
+                prev.insert(n.clone(), s.clone());
+                q.push_back(n);
+            }
+        }
+    }
+    None
+}
 
 #[derive(PartialEq, Eq)]
 struct DijkstraState<T: Eq> {
