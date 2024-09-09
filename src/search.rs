@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use std::hash::Hash;
 
-fn bfs_full_path<T, S, G, N, NR>(start_nodes: S, goal: G, neighbors: N) -> Option<Vec<T>>
+pub fn bfs_full_path<T, S, G, N, NR>(start_nodes: S, goal: G, neighbors: N) -> Option<Vec<T>>
 where
     T: Hash + Eq + Clone,
     S: IntoIterator<Item = T>,
