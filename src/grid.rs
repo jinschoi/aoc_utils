@@ -428,6 +428,13 @@ impl<T> Grid<T> {
         })
     }
 
+    pub fn enumerate_by_pos(&self) -> impl Iterator<Item = (Pos, &T)> {
+        self.g
+            .iter()
+            .enumerate()
+            .map(|(i, val)| (Pos(i / self.width, i % self.width), val))
+    }
+
     pub fn row(&self, i: usize) -> GridRow<T> {
         GridRow {
             grid: self,
