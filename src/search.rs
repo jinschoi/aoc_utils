@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use std::hash::Hash;
+use std::ops::Add;
 
 pub fn bfs_full_path<T, S, G, N, NR>(start_nodes: S, goal: G, neighbors: N) -> Option<Vec<T>>
 where
@@ -38,37 +39,46 @@ where
 }
 
 #[derive(PartialEq, Eq)]
-struct DijkstraState<T: Eq> {
-    pub cost: u32,
+struct DijkstraState<T, C> {
+    pub cost: C,
     pub node: T,
 }
 
-impl<T: Eq> Ord for DijkstraState<T> {
+impl<T, C> Ord for DijkstraState<T, C>
+where
+    T: Eq,
+    C: PartialOrd + Ord,
+{
     fn cmp(&self, other: &Self) -> Ordering {
         other.cost.cmp(&self.cost)
     }
 }
 
-impl<T: Eq> PartialOrd for DijkstraState<T> {
+impl<T, C> PartialOrd for DijkstraState<T, C>
+where
+    T: Eq,
+    C: PartialOrd + Ord,
+{
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-pub fn dijkstra<T, S, G, N, NR>(start_nodes: S, goal: G, neighbors: N) -> Option<u32>
+pub fn dijkstra<T, S, G, N, NR, C>(start_nodes: S, goal: G, neighbors: N) -> Option<C>
 where
     T: Hash + Eq + Clone,
     S: IntoIterator<Item = T>,
     G: Fn(&T) -> bool,
     N: Fn(&T) -> NR,
-    NR: IntoIterator<Item = (u32, T)>,
+    NR: IntoIterator<Item = (C, T)>,
+    C: Add<Output = C> + Default + PartialOrd + Ord + Copy + Clone,
 {
     let mut dist = HashMap::new();
     let mut q = BinaryHeap::new();
     for start in start_nodes {
-        dist.insert(start.clone(), 0);
+        dist.insert(start.clone(), C::default());
         q.push(DijkstraState {
-            cost: 0,
+            cost: C::default(),
             node: start,
         });
     }
@@ -79,18 +89,24 @@ where
         steps += 1;
         max_q = max_q.max(q.len());
 
-        if &p > dist.get(&node).unwrap_or(&u32::MAX) {
-            continue;
+        if let Some(&old_dist) = dist.get(&node) {
+            if p > old_dist {
+                continue;
+            }
         }
+
         if goal(&node) {
             dbg!(max_q, steps);
             return Some(p);
         }
         for (cost, n) in neighbors(&node) {
             let alt = p + cost;
-            if &alt < dist.get(&n).unwrap_or(&u32::MAX) {
-                dist.insert(n.clone(), alt);
-                q.push(DijkstraState { cost: alt, node: n });
+            match dist.get(&n) {
+                Some(&old_dist) if alt >= old_dist => (),
+                _ => {
+                    dist.insert(n.clone(), alt);
+                    q.push(DijkstraState { cost: alt, node: n });
+                }
             }
         }
     }
@@ -189,7 +205,12 @@ where
     None
 }
 
-pub fn astar_dist<T, S, G, N, NR, H>(start_nodes: S, goal: G, neighbors: N, heuristic: H) -> Option<u32>
+pub fn astar_dist<T, S, G, N, NR, H>(
+    start_nodes: S,
+    goal: G,
+    neighbors: N,
+    heuristic: H,
+) -> Option<u32>
 where
     T: Hash + Eq + Clone,
     S: IntoIterator<Item = T>,
