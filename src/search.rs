@@ -115,51 +115,60 @@ where
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub struct AstarResult<T> {
-    pub cost: u32,
+pub struct AstarResult<T, C> {
+    pub cost: C,
     pub node: T,
     pub came_from: HashMap<T, T>,
 }
 
 #[derive(PartialEq, Eq)]
-struct AstarState<T: Eq> {
-    estimated_cost: u32,
+struct AstarState<T, C> {
+    estimated_cost: C,
     node: T,
 }
 
-impl<T: Eq> Ord for AstarState<T> {
+impl<T, C> Ord for AstarState<T, C> 
+where
+    T: Eq,
+    C: PartialOrd + Ord,
+{
     fn cmp(&self, other: &Self) -> Ordering {
         // order by reverse estimated cost to be used in a max heap
         other.estimated_cost.cmp(&self.estimated_cost)
     }
 }
 
-impl<T: Eq> PartialOrd for AstarState<T> {
+impl<T, C> PartialOrd for AstarState<T, C>
+where
+    T: Eq,
+    C: PartialOrd + Ord,
+{
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-pub fn astar_full_path<T, S, G, N, NR, H>(
+pub fn astar_full_path<T, S, G, N, NR, H, C>(
     start_nodes: S,
     goal: G,
     neighbors: N,
     heuristic: H,
-) -> Option<AstarResult<T>>
+) -> Option<AstarResult<T, C>>
 where
     T: Hash + Eq + Clone,
     S: IntoIterator<Item = T>,
     G: Fn(&T) -> bool,
     N: Fn(&T) -> NR,
-    NR: IntoIterator<Item = (u32, T)>,
-    H: Fn(&T) -> u32,
+    NR: IntoIterator<Item = (C, T)>,
+    H: Fn(&T) -> C,
+    C: Add<Output = C> + Default + PartialOrd + Ord + Copy + Clone,
 {
-    let mut dist = HashMap::new();
+    let mut dist: HashMap<T, C> = HashMap::new();
     let mut came_from = HashMap::new();
     let mut q = BinaryHeap::new();
 
     for start in start_nodes {
-        dist.insert(start.clone(), 0);
+        dist.insert(start.clone(), C::default());
         q.push(AstarState {
             estimated_cost: heuristic(&start),
             node: start,
@@ -192,38 +201,42 @@ where
         }
         for (cost, n) in neighbors(&node) {
             let alt = node_dist + cost;
-            if alt < *dist.get(&n).unwrap_or(&u32::MAX) {
-                came_from.insert(n.clone(), node.clone());
-                dist.insert(n.clone(), alt);
-                q.push(AstarState {
-                    estimated_cost: alt + heuristic(&n),
-                    node: n,
-                });
+            match dist.get(&n) {
+                Some(&old_dist) if alt >= old_dist => (),
+                _ => {
+                    came_from.insert(n.clone(), node.clone());
+                    dist.insert(n.clone(), alt);
+                    q.push(AstarState {
+                        estimated_cost: alt + heuristic(&n),
+                        node: n,
+                    });
+                }
             }
         }
     }
     None
 }
 
-pub fn astar_dist<T, S, G, N, NR, H>(
+pub fn astar_dist<T, S, G, N, NR, H, C>(
     start_nodes: S,
     goal: G,
     neighbors: N,
     heuristic: H,
-) -> Option<u32>
+) -> Option<C>
 where
     T: Hash + Eq + Clone,
     S: IntoIterator<Item = T>,
     G: Fn(&T) -> bool,
     N: Fn(&T) -> NR,
-    NR: IntoIterator<Item = (u32, T)>,
-    H: Fn(&T) -> u32,
+    NR: IntoIterator<Item = (C, T)>,
+    H: Fn(&T) -> C,
+    C: Add<Output = C> + Default + PartialOrd + Ord + Copy + Clone,
 {
-    let mut dist = HashMap::new();
+    let mut dist: HashMap<T, C> = HashMap::new();
     let mut q = BinaryHeap::new();
 
     for start in start_nodes {
-        dist.insert(start.clone(), 0);
+        dist.insert(start.clone(), C::default());
         q.push(AstarState {
             estimated_cost: heuristic(&start),
             node: start,
@@ -252,12 +265,15 @@ where
         }
         for (cost, n) in neighbors(&node) {
             let alt = node_dist + cost;
-            if alt < *dist.get(&n).unwrap_or(&u32::MAX) {
-                dist.insert(n.clone(), alt);
-                q.push(AstarState {
-                    estimated_cost: alt + heuristic(&n),
-                    node: n,
-                });
+            match dist.get(&n) {
+                Some(&old_dist) if alt >= old_dist => (),
+                _ => {
+                    dist.insert(n.clone(), alt);
+                    q.push(AstarState {
+                        estimated_cost: alt + heuristic(&n),
+                        node: n,
+                    });
+                }
             }
         }
     }
