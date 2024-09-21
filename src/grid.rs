@@ -51,6 +51,19 @@ where
     }
 }
 
+impl<T> Clone for Grid<T>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            width: self.width,
+            height: self.height,
+            g: self.g.clone(),
+        }
+    }
+}
+
 impl<'a, T> Grid<T>
 where
     T: Clone + 'a,
