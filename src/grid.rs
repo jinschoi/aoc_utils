@@ -431,7 +431,7 @@ impl<T> Grid<T> {
     pub fn all_positions<'a>(
         &'a self,
         f: impl Fn(&T) -> bool + 'a,
-    ) -> impl Iterator<Item = Pos> + '_ {
+    ) -> impl Iterator<Item = Pos> + 'a {
         self.g.iter().enumerate().flat_map(move |(i, val)| {
             if f(val) {
                 Some(Pos(i / self.width, i % self.width))
