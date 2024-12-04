@@ -207,7 +207,7 @@ where
 
 impl<T> Grid<T>
 where
-    T: From<char>,
+    T: From<char> + Clone,
 {
     pub fn read_from_file<P>(filename: P) -> Result<Self, GridError>
     where
@@ -231,6 +231,33 @@ where
         let height = g.len() / width;
         Ok(Self { width, height, g })
     }
+
+    pub fn read_from_file_with_fill<P>(filename: P, fill: T) -> Result<Self, GridError>
+    where
+        P: AsRef<Path>,
+    {
+        let mut g = vec![];
+        let mut lines = read_lines(filename)?;
+        let first_line = lines.next().ok_or(GridError::EmptyGrid)??;
+        let row = first_line.chars().map(|c| T::from(c)).collect::<Vec<_>>();
+        // Assume the first row sets the width.
+        let width = row.len();
+
+        g.extend(row);
+
+        for line in lines {
+            let mut row = line?.chars().map(|c| T::from(c)).collect::<Vec<_>>();
+            if row.len() > width {
+                return Err(GridError::Inconsistent);
+            } else if row.len() < width {
+                row.resize(width, fill.clone());
+            }
+            g.extend(row);
+        }
+        let height = g.len() / width;
+        Ok(Self { width, height, g })
+    }
+
 }
 
 impl<T> Grid<T>
