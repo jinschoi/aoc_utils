@@ -564,19 +564,19 @@ impl<T> Grid<T> {
 
 impl<T> Grid<T>
 where
-    T: Default + Clone,
+    T: Clone,
 {
     // Grow the grid by one in every direction.
-    pub fn expand(&self) -> Self {
+    pub fn expand(&self, fill: T) -> Self {
         let width = self.width + 2;
-        let vals = std::iter::repeat(T::default())
+        let vals = std::iter::repeat(fill.clone())
             .take(width)
             .chain((0..self.height).flat_map(|i| {
-                std::iter::once(T::default())
+                std::iter::once(fill.clone())
                     .chain(self.row(i).cloned())
-                    .chain(std::iter::once(T::default()))
+                    .chain(std::iter::once(fill.clone()))
             }))
-            .chain(std::iter::repeat(T::default()).take(width))
+            .chain(std::iter::repeat(fill.clone()).take(width))
             .collect::<Vec<_>>();
         let height = self.height + 2;
         Self::from_vals(vals, width, height)
@@ -791,13 +791,13 @@ mod tests {
     #[test]
     fn test_expand() {
         let g = sample_grid();
-        let expanded = g.expand();
+        let expanded = g.expand('.');
         let expected = Grid {
             width: 5,
             height: 5,
             g: vec![
-                '\0', '\0', '\0', '\0', '\0', '\0', 'a', 'b', 'c', '\0', '\0', 'd', 'e', 'f', '\0',
-                '\0', 'g', 'h', 'i', '\0', '\0', '\0', '\0', '\0', '\0',
+                '.', '.', '.', '.', '.', '.', 'a', 'b', 'c', '.', '.', 'd', 'e', 'f', '.',
+                '.', 'g', 'h', 'i', '.', '.', '.', '.', '.', '.',
             ],
         };
         assert_eq!(expanded, expected);
