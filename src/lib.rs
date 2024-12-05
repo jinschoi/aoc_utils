@@ -2,6 +2,7 @@ pub mod grid;
 pub mod search;
 pub mod counter;
 pub mod vecmap;
+pub mod toposort;
 
 use std::fs::File;
 use std::io::{self, BufRead};
