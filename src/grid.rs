@@ -257,7 +257,6 @@ where
         let height = g.len() / width;
         Ok(Self { width, height, g })
     }
-
 }
 
 impl<T> Grid<T>
@@ -796,8 +795,8 @@ mod tests {
             width: 5,
             height: 5,
             g: vec![
-                '.', '.', '.', '.', '.', '.', 'a', 'b', 'c', '.', '.', 'd', 'e', 'f', '.',
-                '.', 'g', 'h', 'i', '.', '.', '.', '.', '.', '.',
+                '.', '.', '.', '.', '.', '.', 'a', 'b', 'c', '.', '.', 'd', 'e', 'f', '.', '.',
+                'g', 'h', 'i', '.', '.', '.', '.', '.', '.',
             ],
         };
         assert_eq!(expanded, expected);
