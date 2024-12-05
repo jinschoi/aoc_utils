@@ -4,7 +4,7 @@ use std::num::ParseIntError;
 use std::ops::{Index, IndexMut};
 use std::path::Path;
 use std::str::FromStr;
-use std::{fmt, io};
+use std::{cmp::Ordering, fmt, io};
 use thiserror::Error;
 
 #[derive(PartialEq, Eq, Hash)]
@@ -247,10 +247,10 @@ where
 
         for line in lines {
             let mut row = line?.chars().map(|c| T::from(c)).collect::<Vec<_>>();
-            if row.len() > width {
-                return Err(GridError::Inconsistent);
-            } else if row.len() < width {
-                row.resize(width, fill.clone());
+            match row.len().cmp(&width) {
+                Ordering::Greater => return Err(GridError::Inconsistent),
+                Ordering::Less => row.resize(width, fill.clone()),
+                _ => (),
             }
             g.extend(row);
         }
