@@ -98,6 +98,15 @@ where
         )
     }
 
+    pub fn copy_subgrid(&mut self, subgrid: &Grid<T>, at: Pos) {
+        assert!(at.0 + subgrid.height <= self.height && at.1 + subgrid.width <= self.width);
+        for i in 0..subgrid.height {
+            for j in 0..subgrid.width {
+                self[(at.0 + i, at.1 + j)] = subgrid[(i, j)].clone();
+            }
+        }
+    }
+
     pub fn transpose(&self) -> Self {
         let mut g = vec![];
         for j in 0..self.width {
