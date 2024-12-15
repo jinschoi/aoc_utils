@@ -194,29 +194,13 @@ where
     type Err = GridError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut g = vec![];
-        let mut lines = s.lines();
-        let first_line = lines.next().ok_or(GridError::EmptyGrid)?;
-        let row = first_line.chars().map(|c| T::from(c)).collect::<Vec<_>>();
-        let width = row.len();
-
-        g.extend(row);
-
-        for line in lines {
-            let row = line.chars().map(|c| T::from(c)).collect::<Vec<_>>();
-            if row.len() != width {
-                return Err(GridError::Inconsistent);
-            }
-            g.extend(row);
-        }
-        let height = g.len() / width;
-        Ok(Self { width, height, g })
+        Self::from_lines(s.lines())
     }
 }
 
 impl<T> Grid<T>
 where
-    T: From<char> + Clone,
+    T: From<char>,
 {
     pub fn read_from_file<P>(filename: P) -> Result<Self, GridError>
     where
@@ -241,6 +225,29 @@ where
         Ok(Self { width, height, g })
     }
 
+    pub fn from_lines<'a>(mut lines: impl Iterator<Item = &'a str>) -> Result<Self, GridError> {
+        let first_line = lines.next().ok_or(GridError::EmptyGrid)?;
+        let row = first_line.chars().map(|c| T::from(c)).collect::<Vec<_>>();
+        let width = row.len();
+        let mut g = vec![];
+        g.extend(row);
+
+        for line in lines {
+            let row = line.chars().map(|c| T::from(c)).collect::<Vec<_>>();
+            if row.len() != width {
+                return Err(GridError::Inconsistent);
+            }
+            g.extend(row);
+        }
+        let height = g.len() / width;
+        Ok(Self { width, height, g })
+    }
+}
+
+impl<T> Grid<T>
+where
+    T: From<char> + Clone,
+{
     pub fn read_from_file_with_fill<P>(filename: P, fill: T) -> Result<Self, GridError>
     where
         P: AsRef<Path>,
