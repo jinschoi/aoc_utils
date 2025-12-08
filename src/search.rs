@@ -64,12 +64,12 @@ where
     }
 }
 
-pub fn dijkstra<T, S, G, N, NR, C>(start_nodes: S, goal: G, neighbors: N) -> Option<C>
+pub fn dijkstra<T, S, G, N, NR, C>(start_nodes: S, mut goal: G, mut neighbors: N) -> Option<C>
 where
     T: Hash + Eq + Clone,
     S: IntoIterator<Item = T>,
-    G: Fn(&T) -> bool,
-    N: Fn(&T) -> NR,
+    G: FnMut(&T) -> bool,
+    N: FnMut(&T) -> NR,
     NR: IntoIterator<Item = (C, T)>,
     C: Add<Output = C> + Default + PartialOrd + Ord + Copy + Clone,
 {
@@ -113,6 +113,66 @@ where
     None
 }
 
+pub fn dijkstra_full_path<T, S, G, N, NR, C>(
+    start_nodes: S,
+    mut goal: G,
+    mut neighbors: N,
+) -> Option<Vec<T>>
+where
+    T: Hash + Eq + Clone,
+    S: IntoIterator<Item = T>,
+    G: FnMut(&T) -> bool,
+    N: FnMut(&T) -> NR,
+    NR: IntoIterator<Item = (C, T)>,
+    C: Add<Output = C> + Default + PartialOrd + Ord + Copy + Clone,
+{
+    let mut prev = HashMap::<T, T>::new();
+    let mut dist = HashMap::new();
+    let mut q = BinaryHeap::new();
+    for start in start_nodes {
+        dist.insert(start.clone(), C::default());
+        q.push(DijkstraState {
+            cost: C::default(),
+            node: start,
+        });
+    }
+
+    let mut max_q: usize = 0;
+    while let Some(DijkstraState { cost: p, node }) = q.pop() {
+        max_q = max_q.max(q.len());
+
+        if let Some(&old_dist) = dist.get(&node) {
+            if p > old_dist {
+                continue;
+            }
+        }
+
+        if goal(&node) {
+            let mut path = vec![];
+            let mut cur = &node;
+            while let Some(prev) = prev.get(cur) {
+                path.push(cur.clone());
+                cur = prev;
+            }
+            path.push(cur.clone());
+            path.reverse();
+            return Some(path);
+        }
+        for (cost, n) in neighbors(&node) {
+            let alt = p + cost;
+            match dist.get(&n) {
+                Some(&old_dist) if alt >= old_dist => (),
+                _ => {
+                    dist.insert(n.clone(), alt);
+                    prev.insert(n.clone(), node.clone());
+                    q.push(DijkstraState { cost: alt, node: n });
+                }
+            }
+        }
+    }
+    None
+}
+
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct AstarResult<T, C> {
@@ -127,7 +187,7 @@ struct AstarState<T, C> {
     node: T,
 }
 
-impl<T, C> Ord for AstarState<T, C> 
+impl<T, C> Ord for AstarState<T, C>
 where
     T: Eq,
     C: PartialOrd + Ord,
