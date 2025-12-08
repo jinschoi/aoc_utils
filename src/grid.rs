@@ -7,7 +7,7 @@ use std::str::FromStr;
 use std::{cmp::Ordering, fmt, io};
 use thiserror::Error;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct Grid<T> {
     pub width: usize,
     pub height: usize,
@@ -48,19 +48,6 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f)?;
         fmt::Display::fmt(self, f)
-    }
-}
-
-impl<T> Clone for Grid<T>
-where
-    T: Clone,
-{
-    fn clone(&self) -> Self {
-        Self {
-            width: self.width,
-            height: self.height,
-            g: self.g.clone(),
-        }
     }
 }
 
