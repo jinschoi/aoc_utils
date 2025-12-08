@@ -327,15 +327,7 @@ impl fmt::Debug for Pos {
 
 impl Pos {
     pub fn manhattan_distance(&self, other: &Self) -> usize {
-        (if self.0 < other.0 {
-            other.0 - self.0
-        } else {
-            self.0 - other.0
-        }) + if self.1 < other.1 {
-            other.1 - self.1
-        } else {
-            self.1 - other.1
-        }
+        self.0.abs_diff(other.0) + self.1.abs_diff(other.1)
     }
 }
 
@@ -477,7 +469,7 @@ impl<T> Grid<T> {
             .map(|(i, val)| (Pos(i / self.width, i % self.width), val))
     }
 
-    pub fn row(&self, i: usize) -> GridRow<T> {
+    pub fn row(&self, i: usize) -> GridRow<'_, T> {
         GridRow {
             grid: self,
             i,
@@ -485,7 +477,7 @@ impl<T> Grid<T> {
         }
     }
 
-    pub fn col(&self, j: usize) -> GridCol<T> {
+    pub fn col(&self, j: usize) -> GridCol<'_, T> {
         GridCol {
             grid: self,
             i: 0,
@@ -571,14 +563,13 @@ where
     // Grow the grid by one in every direction.
     pub fn expand(&self, fill: T) -> Self {
         let width = self.width + 2;
-        let vals = std::iter::repeat(fill.clone())
-            .take(width)
+        let vals = std::iter::repeat_n(fill.clone(), width)
             .chain((0..self.height).flat_map(|i| {
                 std::iter::once(fill.clone())
                     .chain(self.row(i).cloned())
                     .chain(std::iter::once(fill.clone()))
             }))
-            .chain(std::iter::repeat(fill.clone()).take(width))
+            .chain(std::iter::repeat_n(fill.clone(), width))
             .collect::<Vec<_>>();
         let height = self.height + 2;
         Self::from_vals(vals, width, height)
