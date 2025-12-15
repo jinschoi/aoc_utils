@@ -5,6 +5,7 @@ pub mod vecmap;
 pub mod toposort;
 pub mod disjointset;
 pub mod segmenttree;
+pub mod simplex;
 
 use std::fs::File;
 use std::io::{self, BufRead};
