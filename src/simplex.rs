@@ -323,11 +323,10 @@ impl LP {
         }
         self.remove_degenerate_artificials_from_basis();
 
-        let res = match self.simplex(p2) {
+        match self.simplex(p2) {
             SimplexResult::Optimal => Some(self.rhs(p2)),
             SimplexResult::Unbounded => None,
-        };
-        res
+        }
     }
 
     pub fn solution_x(&self) -> Vec<Rational64> {
@@ -336,7 +335,7 @@ impl LP {
         for row in 0..self.rows {
             let col = self.active[row];
             if col < self.slack_start {
-                x[col] = self.t[row][self.rhs_col];
+                x[col] = self.rhs(row);
             }
         }
 
