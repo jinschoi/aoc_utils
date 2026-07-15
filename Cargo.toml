@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 num = "0.4.3"
-tabled = "0.20.0"
-thiserror = "1.0.50"
+tabled = "0.21.0"
+thiserror = "2.0.18"
