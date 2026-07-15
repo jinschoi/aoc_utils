@@ -193,34 +193,40 @@ where
     where
         P: AsRef<Path>,
     {
-        let mut g = vec![];
-        let mut lines = read_lines(filename)?;
-        let first_line = lines.next().ok_or(GridError::EmptyGrid)??;
-        let row = first_line.chars().map(|c| T::from(c)).collect::<Vec<_>>();
-        let width = row.len();
-
-        g.extend(row);
-
-        for line in lines {
-            let row = line?.chars().map(|c| T::from(c)).collect::<Vec<_>>();
-            if row.len() != width {
-                return Err(GridError::Inconsistent);
-            }
-            g.extend(row);
-        }
-        let height = g.len() / width;
-        Ok(Self { width, height, g })
+        Self::try_from_lines(read_lines(filename)?)
     }
 
-    pub fn from_lines<'a>(mut lines: impl Iterator<Item = &'a str>) -> Result<Self, GridError> {
-        let first_line = lines.next().ok_or(GridError::EmptyGrid)?;
-        let row = first_line.chars().map(|c| T::from(c)).collect::<Vec<_>>();
+    pub fn from_lines<'a>(lines: impl Iterator<Item = &'a str>) -> Result<Self, GridError> {
+        Self::try_from_lines(lines.map(Ok::<_, GridError>))
+    }
+
+    fn try_from_lines<S, E>(
+        mut lines: impl Iterator<Item = Result<S, E>>,
+    ) -> Result<Self, GridError>
+    where
+        S: AsRef<str>,
+        E: Into<GridError>,
+    {
+        let first_line = lines
+            .next()
+            .ok_or(GridError::EmptyGrid)?
+            .map_err(Into::into)?;
+        let row = first_line
+            .as_ref()
+            .chars()
+            .map(|c| T::from(c))
+            .collect::<Vec<_>>();
         let width = row.len();
         let mut g = vec![];
         g.extend(row);
 
         for line in lines {
-            let row = line.chars().map(|c| T::from(c)).collect::<Vec<_>>();
+            let line = line.map_err(Into::into)?;
+            let row = line
+                .as_ref()
+                .chars()
+                .map(|c| T::from(c))
+                .collect::<Vec<_>>();
             if row.len() != width {
                 return Err(GridError::Inconsistent);
             }
