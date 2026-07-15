@@ -52,4 +52,3 @@ impl<K: Eq, V> VecMap<K, V> {
         self.keys.iter().any(|key| key == k)
     }
 }
-

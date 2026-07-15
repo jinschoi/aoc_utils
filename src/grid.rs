@@ -7,21 +7,34 @@ use std::str::FromStr;
 use std::{cmp::Ordering, fmt, io};
 use thiserror::Error;
 
+/// A two-dimensional, row-major grid.
+///
+/// Positions and index tuples are expressed as `(row, column)`. The elements in
+/// [`Grid::g`] are stored row by row and are expected to have a length equal to
+/// `width * height`.
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct Grid<T> {
+    /// The number of columns in the grid.
     pub width: usize,
+    /// The number of rows in the grid.
     pub height: usize,
+    /// The elements of the grid in row-major order.
     pub g: Vec<T>,
 }
 
+/// An error encountered while reading or parsing a [`Grid`].
 #[derive(Error, Debug)]
 pub enum GridError {
+    /// The input did not contain any rows.
     #[error("empty grid")]
     EmptyGrid,
+    /// The input contained rows with incompatible lengths.
     #[error("inconsistent row lengths")]
     Inconsistent,
+    /// An I/O operation failed.
     #[error("{0}")]
     IOError(#[from] io::Error),
+    /// An integer value could not be parsed.
     #[error("{0}")]
     ParseError(#[from] ParseIntError),
 }
@@ -55,11 +68,17 @@ impl<'a, T> Grid<T>
 where
     T: Clone + 'a,
 {
+    /// Creates a grid of the given dimensions in which every cell is `fill`.
     pub fn new(fill: T, width: usize, height: usize) -> Self {
         let g = vec![fill; width * height];
         Self { width, height, g }
     }
 
+    /// Creates a grid from values arranged in row-major order.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `vals.len()` is not equal to `width * height`.
     pub fn from_vals(vals: Vec<T>, width: usize, height: usize) -> Self {
         assert_eq!(vals.len(), width * height);
         Self {
@@ -69,6 +88,11 @@ where
         }
     }
 
+    /// Creates a grid by cloning row-major values from an iterator.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the iterator does not yield exactly `width * height` values.
     pub fn from_iter<I>(it: I, width: usize, height: usize) -> Self
     where
         I: Iterator<Item = &'a T>,
@@ -77,6 +101,14 @@ where
         Self::from_vals(vals, width, height)
     }
 
+    /// Returns a copy of the rectangular region bounded by two positions.
+    ///
+    /// Both `from_pos` and `to_pos` are included in the returned grid.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the positions do not describe a nonempty region wholly within
+    /// the grid.
     pub fn subgrid(&self, from_pos: Pos, to_pos: Pos) -> Self {
         Self::from_iter(
             self.subgrid_elements(from_pos, to_pos),
@@ -85,6 +117,11 @@ where
         )
     }
 
+    /// Copies `subgrid` into this grid with its top-left cell at `at`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `subgrid` does not fit within this grid at `at`.
     pub fn copy_subgrid(&mut self, subgrid: &Grid<T>, at: Pos) {
         assert!(at.0 + subgrid.height <= self.height && at.1 + subgrid.width <= self.width);
         for i in 0..subgrid.height {
@@ -94,6 +131,7 @@ where
         }
     }
 
+    /// Returns the transpose of this grid.
     pub fn transpose(&self) -> Self {
         let mut g = vec![];
         for j in 0..self.width {
@@ -108,6 +146,7 @@ where
         }
     }
 
+    /// Returns a copy of this grid rotated 90 degrees clockwise.
     pub fn rotate_right(&self) -> Self {
         let mut g = vec![];
         for j in 0..self.width {
@@ -122,6 +161,7 @@ where
         }
     }
 
+    /// Returns a copy of this grid rotated 90 degrees counterclockwise.
     pub fn rotate_left(&self) -> Self {
         let mut g = vec![];
         for j in (0..self.width).rev() {
@@ -136,6 +176,7 @@ where
         }
     }
 
+    /// Returns a copy reflected across its vertical axis.
     pub fn flip_lr(&self) -> Self {
         let mut g = vec![];
         for i in 0..self.height {
@@ -150,6 +191,7 @@ where
         }
     }
 
+    /// Returns a copy reflected across its horizontal axis.
     pub fn flip_ud(&self) -> Self {
         let mut g = vec![];
         for i in (0..self.height).rev() {
@@ -189,6 +231,19 @@ impl<T> Grid<T>
 where
     T: From<char>,
 {
+    /// Reads a character grid from a file.
+    ///
+    /// Each input line becomes one row and each character is converted with
+    /// [`From<char>`](From::from). The first row determines the grid width.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be read, contains no rows, or has
+    /// rows of different widths.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the first row is empty.
     pub fn read_from_file<P>(filename: P) -> Result<Self, GridError>
     where
         P: AsRef<Path>,
@@ -196,6 +251,19 @@ where
         Self::try_from_lines(read_lines(filename)?)
     }
 
+    /// Creates a character grid from an iterator of lines.
+    ///
+    /// Each line becomes one row and each character is converted with
+    /// [`From<char>`](From::from). The first row determines the grid width.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GridError::EmptyGrid`] if the iterator has no lines, or
+    /// [`GridError::Inconsistent`] if the lines have different widths.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the first line is empty.
     pub fn from_lines<'a>(lines: impl Iterator<Item = &'a str>) -> Result<Self, GridError> {
         Self::try_from_lines(lines.map(Ok::<_, GridError>))
     }
@@ -241,6 +309,19 @@ impl<T> Grid<T>
 where
     T: From<char> + Clone,
 {
+    /// Reads a character grid from a file, padding short rows with `fill`.
+    ///
+    /// The first row determines the grid width. Subsequent short rows are
+    /// padded on the right, while longer rows are rejected.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be read, contains no rows, or
+    /// contains a row longer than the first row.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the first row is empty.
     pub fn read_from_file_with_fill<P>(filename: P, fill: T) -> Result<Self, GridError>
     where
         P: AsRef<Path>,
@@ -273,6 +354,19 @@ where
     T: FromStr,
     GridError: From<<T as FromStr>::Err>,
 {
+    /// Parses a grid whose cells are separated by ASCII whitespace.
+    ///
+    /// Lines form rows, and each whitespace-delimited value is parsed using
+    /// [`FromStr`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if there are no rows, a value cannot be parsed, or the
+    /// rows contain different numbers of values.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the first row contains no values.
     pub fn from_space_sep(s: &str) -> Result<Self, GridError> {
         let mut g = vec![];
         let mut lines = s.lines();
@@ -316,8 +410,14 @@ impl<T> IndexMut<(usize, usize)> for Grid<T> {
     }
 }
 
+/// A zero-based `(row, column)` position in a [`Grid`].
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Pos(pub usize, pub usize);
+pub struct Pos(
+    /// The row index.
+    pub usize,
+    /// The column index.
+    pub usize,
+);
 
 impl fmt::Display for Pos {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -332,6 +432,7 @@ impl fmt::Debug for Pos {
 }
 
 impl Pos {
+    /// Returns the Manhattan distance between this position and `other`.
     pub fn manhattan_distance(&self, other: &Self) -> usize {
         self.0.abs_diff(other.0) + self.1.abs_diff(other.1)
     }
@@ -353,6 +454,7 @@ impl<T> IndexMut<Pos> for Grid<T> {
     }
 }
 
+/// An iterator over the in-bounds neighbors of a grid position.
 pub struct Neighbors<'a, T> {
     grid: &'a Grid<T>,
     offsets: &'static [(isize, isize)],
@@ -384,6 +486,7 @@ impl<T> Iterator for Neighbors<'_, T> {
     }
 }
 
+/// An iterator over references to the elements in one grid row.
 pub struct GridRow<'a, T> {
     grid: &'a Grid<T>,
     i: usize,
@@ -403,6 +506,7 @@ impl<'a, T> Iterator for GridRow<'a, T> {
     }
 }
 
+/// An iterator over references to the elements in one grid column.
 pub struct GridCol<'a, T> {
     grid: &'a Grid<T>,
     i: usize,
@@ -423,6 +527,10 @@ impl<'a, T> Iterator for GridCol<'a, T> {
 }
 
 impl<T> Grid<T> {
+    /// Returns the in-bounds neighbors directly above, below, left, and right
+    /// of `pos`.
+    ///
+    /// Neighbors are yielded in that order when present.
     pub fn cardinal_neighbors(&self, pos: Pos) -> Neighbors<'_, T> {
         Neighbors {
             grid: self,
@@ -432,6 +540,10 @@ impl<T> Grid<T> {
         }
     }
 
+    /// Returns all in-bounds neighbors surrounding `pos`, including diagonals.
+    ///
+    /// Neighbors are yielded from the row above to the row below, and from
+    /// left to right within each row.
     pub fn all_neighbors(&self, pos: Pos) -> Neighbors<'_, T> {
         Neighbors {
             grid: self,
@@ -450,24 +562,26 @@ impl<T> Grid<T> {
         }
     }
 
+    /// Returns the first position whose value satisfies `f`.
+    ///
+    /// Values are searched in row-major order.
     pub fn position(&self, f: impl Fn(&T) -> bool) -> Option<Pos> {
         let ind = self.g.iter().position(f)?;
         Some(Pos(ind / self.width, ind % self.width))
     }
 
+    /// Returns the positions of all values that satisfy `f` in row-major order.
     pub fn all_positions<'a>(
         &'a self,
         f: impl Fn(&T) -> bool + 'a,
     ) -> impl Iterator<Item = Pos> + 'a {
-        self.g.iter().enumerate().flat_map(move |(i, val)| {
-            if f(val) {
-                Some(Pos(i / self.width, i % self.width))
-            } else {
-                None
-            }
-        })
+        self.g
+            .iter()
+            .enumerate()
+            .flat_map(move |(i, val)| f(val).then_some(Pos(i / self.width, i % self.width)))
     }
 
+    /// Iterates over every position and value in row-major order.
     pub fn enumerate_by_pos(&self) -> impl Iterator<Item = (Pos, &T)> {
         self.g
             .iter()
@@ -475,6 +589,12 @@ impl<T> Grid<T> {
             .map(|(i, val)| (Pos(i / self.width, i % self.width), val))
     }
 
+    /// Returns an iterator over row `i`, from left to right.
+    ///
+    /// # Panics
+    ///
+    /// Iterating panics if `i` is outside the grid and the grid has at least
+    /// one column.
     pub fn row(&self, i: usize) -> GridRow<'_, T> {
         GridRow {
             grid: self,
@@ -483,6 +603,12 @@ impl<T> Grid<T> {
         }
     }
 
+    /// Returns an iterator over column `j`, from top to bottom.
+    ///
+    /// # Panics
+    ///
+    /// Iterating panics if `j` is outside the grid and the grid has at least
+    /// one row.
     pub fn col(&self, j: usize) -> GridCol<'_, T> {
         GridCol {
             grid: self,
@@ -491,6 +617,15 @@ impl<T> Grid<T> {
         }
     }
 
+    /// Iterates over a rectangular region in row-major order.
+    ///
+    /// Both `from_pos` and `to_pos` are included.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the iterator is created if either coordinate of `from_pos`
+    /// is greater than the corresponding coordinate of `to_pos`. Iterating
+    /// panics if a requested row is outside the grid.
     pub fn subgrid_elements(&self, from_pos: Pos, to_pos: Pos) -> impl Iterator<Item = &T> {
         assert!(from_pos.0 <= to_pos.0 && from_pos.1 <= to_pos.1);
         let row_iters = (from_pos.0..=to_pos.0)
@@ -533,6 +668,14 @@ impl<T> Grid<T> {
         changed
     }
 
+    /// Flood-fills from `start_pos`, traversing cardinal and diagonal neighbors.
+    ///
+    /// Cells for which `is_blocked` returns `true` are not traversed. Returns
+    /// the number of cells whose value was changed.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `start_pos` is outside the grid or is blocked.
     pub fn flood_fill<F>(&mut self, start_pos: Pos, fill_value: T, is_blocked: F) -> usize
     where
         F: Fn(&T) -> bool,
@@ -541,6 +684,14 @@ impl<T> Grid<T> {
         self._flood_fill(start_pos, fill_value, is_blocked, false)
     }
 
+    /// Flood-fills from `start_pos`, traversing only cardinal neighbors.
+    ///
+    /// Cells for which `is_blocked` returns `true` are not traversed. Returns
+    /// the number of cells whose value was changed.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `start_pos` is outside the grid or is blocked.
     pub fn flood_fill_cardinal<F>(&mut self, start_pos: Pos, fill_value: T, is_blocked: F) -> usize
     where
         F: Fn(&T) -> bool,
@@ -549,6 +700,7 @@ impl<T> Grid<T> {
         self._flood_fill(start_pos, fill_value, is_blocked, true)
     }
 
+    /// Applies `f` to every value and returns a grid with the same dimensions.
     pub fn map<U, F>(&self, f: F) -> Grid<U>
     where
         F: Fn(&T) -> U,
@@ -566,7 +718,9 @@ impl<T> Grid<T>
 where
     T: Clone,
 {
-    // Grow the grid by one in every direction.
+    /// Returns a grid expanded by one cell on every side.
+    ///
+    /// The new outer border is initialized with `fill`.
     pub fn expand(&self, fill: T) -> Self {
         let width = self.width + 2;
         let vals = std::iter::repeat_n(fill.clone(), width)

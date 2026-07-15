@@ -37,6 +37,8 @@ struct Node {
 ///
 /// # Example: Rectangle Union Line Sweep
 /// ```
+/// use aoc_utils::segmenttree::SegmentTree;
+///
 /// // Set up coordinates for rectangles: [(0,0,3,2), (1,1,4,3)]
 /// let x_coords = vec![0, 1, 3, 4];
 /// let mut tree = SegmentTree::new(x_coords);
@@ -77,6 +79,8 @@ impl SegmentTree {
     ///
     /// # Example
     /// ```
+    /// use aoc_utils::segmenttree::SegmentTree;
+    ///
     /// let tree = SegmentTree::new(vec![0, 5, 10, 15]);
     /// // Tree can now handle segments like [0,5), [5,10), [0,15), etc.
     /// ```
